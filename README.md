@@ -1,16 +1,34 @@
 # Disentangled Motion Modeling for Video Frame Interpolation, AAAI 2025
+(Personal fork for minor quality of life improvements and support for Python 3.13)
 <div align="center">
   <img src=figures/cover_figure.png width=900 />
 </div>
 
+## Installation (Python 3.13)
 
-
-## Environmental settings
+Setup virtual environment:
 ```
-conda create -n momo python=3.10.9
-conda activate momo
+python -m venv venv
+source venv/bin/activate
+pip install --upgrade pip wheel
+```
+
+Install the latest pytorch appropriate for your system using the command specified on [pytorch.org](https://pytorch.org/)\
+For example, on my system (AMD):
+```
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/rocm6.4
+```
+
+Install requirements normally:
+```
 pip install -r requirements.txt
 ```
+
+## Running
+```
+python demo.py --video input.mp4 --output_path out.mp4 
+```
+
 
 To configure specific GPUs to use in training / inference, use the `accelerate config` command before running the commands below.
 

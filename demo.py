@@ -10,13 +10,14 @@ from diffusion.momo import MoMo
 from tqdm import tqdm
 from utils import set_mode, frames2video, tensor2opencv
 import shutil
+from huggingface_hub import snapshot_download
 
 
 def get_exp_cfg():
     parser = ArgumentParser()
     parser.add_argument('--video', type=str, required=True, help='path to the video to conduct frame interpolation.')
     parser.add_argument('--output_path', type=str, required=True, help='path to save the interpolated result.')
-    parser.add_argument('--ckpt_path', type=str, default='./experiments/diffusion/momo_full/weights/model.pth', help='path to the pretrained model weights')
+    parser.add_argument('--ckpt_path', type=str, default='./models/momo_full/weights/model.pth', help='path to the pretrained model weights')
     parser.add_argument('--use_png_buffer', action='store_true', help='save the extracted frames as png as buffer for processing, in case memory is insufficient.')
     parser.add_argument('--seed', type=int, default=42, help='random seed setting')
     parser.add_argument('--mp', type=str, default='no', choices=['fp16', 'bf16', 'no'], help='use mixed precision')
@@ -37,6 +38,7 @@ def get_exp_cfg():
 
 @ torch.no_grad()
 def run():
+    snapshot_download(repo_id="chameleon-ai/momo", local_dir="models", ignore_patterns=["*.md"])
     args = get_exp_cfg()
     accelerator = Accelerator(
         mixed_precision=args.mp,
