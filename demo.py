@@ -12,12 +12,25 @@ from utils import set_mode, frames2video, tensor2opencv
 import shutil
 from huggingface_hub import snapshot_download
 
+def get_output_filename(input_filename):
+    output = os.path.splitext(input_filename)[0]
+    filename_count = 1
+    ext = 'mp4'
+    while True:
+        # Rename the output by appending '.interpolated-1.' to the end of the file name.
+        # The dirname shenanigans are an attempt to differentiate a file in a subdirectory vs a filename unqualified in the current directory.
+        final_output = os.path.dirname(output) + (os.path.sep if os.path.dirname(output) != "" else "") + os.path.basename(output) + '.interpolated-{}.'.format(filename_count) + ext
+        if os.path.isfile(final_output):
+            filename_count += 1 # Try to deconflict the file name by finding a different file name
+        else:
+            return final_output
 
 def get_exp_cfg():
     parser = ArgumentParser()
-    parser.add_argument('--video', type=str, required=True, help='path to the video to conduct frame interpolation.')
-    parser.add_argument('--output_path', type=str, required=True, help='path to save the interpolated result.')
-    parser.add_argument('--ckpt_path', type=str, default='./models/momo_full/weights/model.pth', help='path to the pretrained model weights')
+    parser.add_argument('--video', type=str, help='path to the video to conduct frame interpolation.')
+    parser.add_argument('--output_path', type=str, help='path to save the interpolated result.')
+    parser.add_argument('--ckpt_path', type=str, help='custom path to the pretrained model weights')
+    parser.add_argument('--model', type=str, default='full', choices=['full', '10m'], help='Which model to use')
     parser.add_argument('--use_png_buffer', action='store_true', help='save the extracted frames as png as buffer for processing, in case memory is insufficient.')
     parser.add_argument('--seed', type=int, default=42, help='random seed setting')
     parser.add_argument('--mp', type=str, default='no', choices=['fp16', 'bf16', 'no'], help='use mixed precision')
@@ -31,14 +44,31 @@ def get_exp_cfg():
     parser.add_argument('--pad_to_fit_unet', action='store_true', help='avoid errors in resolution mismatch after a sequence of downsamplings and upsamplings in the U-Net by padding vs resizing')
     parser.add_argument('--resize_to_fit_unet', action='store_false', dest='pad_to_fit_unet')
     parser.set_defaults(pad_to_fit_unet=False)
-    args = parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
+    
+    if args.ckpt_path is None:
+        if args.model == 'full':
+            print('Model:  full')
+            args.ckpt_path = './models/momo_full/weights/model.pth'
+        elif args.model == '10m':
+            print('Model:  10m')
+            args.ckpt_path = './models/momo_10m/weights/model.pth'
+        if not os.path.exists(args.ckpt_path):
+            snapshot_download(repo_id="chameleon-ai/momo", local_dir="models", ignore_patterns=["*.md"])
+
+    if args.video is None and len(unknown_args) > 0 and os.path.isfile(unknown_args[0]):
+        args.video = unknown_args[0]
+        print(f'Input:  {args.video}')
+        
+    if args.output_path is None:
+        args.output_path = get_output_filename(args.video)
+        print(f'Output: {args.output_path}')
 
     return args
 
 
 @ torch.no_grad()
 def run():
-    snapshot_download(repo_id="chameleon-ai/momo", local_dir="models", ignore_patterns=["*.md"])
     args = get_exp_cfg()
     accelerator = Accelerator(
         mixed_precision=args.mp,
@@ -46,10 +76,11 @@ def run():
     )
 
     # print setting
-    accelerator.print('\n\n#######################################################################################\n')
-    accelerator.print(f'x2 interpolation on <{args.video}>\n')
-    accelerator.print(args)
-    accelerator.print('\n#######################################################################################\n\n')
+    print('Running x2 interpolation...')
+    #accelerator.print('\n\n#######################################################################################\n')
+    #accelerator.print(f'x2 interpolation on <{args.video}>\n')
+    #accelerator.print(args)
+    #accelerator.print('\n#######################################################################################\n\n')
 
     # load pretrained models
     synth_model = SynthesisNet()

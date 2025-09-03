@@ -28,6 +28,16 @@ pip install -r requirements.txt
 ```
 python demo.py --video input.mp4 --output_path out.mp4 
 ```
+This fork only has changes concerned with `demo.py`, which does simple 2x interpolation.\
+Changes to `demo.py` from original version:
+- Automatically download the relevant models from [huggingface](https://huggingface.co/chameleon-ai/momo) to the `models` directory the first time you run it.
+- Added `--model` argument, which may be `full` or `10m`, which is a shorthand that specifies which model to use without having to specify the full path. By default, it is `full`. (You can still specify `--ckpt_path` if you want a completely custom path)
+- No need to name the `--video` argument. If a video is specified as an unnamed argument and the path exists, it is treated as the video input.
+- `--output_path` is automatically determined if not specified. It is named after the input.
+So the simplified command to run the demo becomes:
+```
+python demo.py input.mp4
+```
 
 
 To configure specific GPUs to use in training / inference, use the `accelerate config` command before running the commands below.
